@@ -2,6 +2,7 @@ Properconfig
 ------------
 
 Full-blown configuration. Configure your application, in order of precedence, from:
+
 * command-line
 * configuration file passed to the command-line
 * environment variables
@@ -16,7 +17,8 @@ Returns a dictionary object containing the full configuration.
 Usage
 =====
 
-
+.. code-block:: python
+    
     from properconfig import create_config_parser
     parser = create_config_parser(
         name="myapp",
@@ -55,59 +57,56 @@ FIXME
 
 Material
 ========
-http://stackoverflow.com/questions/11077223/what-order-of-reading-configuration-values
-http://blog.vwelch.com/2011/04/combining-configparser-and-argparse.html
-https://pypi.python.org/pypi/ConfArgParse
-https://speakerdeck.com/pyconslides/transforming-code-into-beautiful-idiomatic-python-by-raymond-hettinger-1 slide 20
-https://pypi.python.org/pypi/configparser/3.5.0b2
-http://pythonhosted.org/configglue/
-http://stackoverflow.com/questions/335695/lists-in-configparser
+* http://stackoverflow.com/questions/11077223/what-order-of-reading-configuration-values
+* http://blog.vwelch.com/2011/04/combining-configparser-and-argparse.html
+* https://pypi.python.org/pypi/ConfArgParse
+* https://speakerdeck.com/pyconslides/transforming-code-into-beautiful-idiomatic-python-by-raymond-hettinger-1 slide 20
+* https://pypi.python.org/pypi/configparser/3.5.0b2
+* http://pythonhosted.org/configglue/
+* http://stackoverflow.com/questions/335695/lists-in-configparser
 
 
 Map arugment parser to INI and env vars
 =======================================
 
-1. When verbose option is present (e.g. -v and --verbose), the verbose is used
-to define env vars and INI file key
-
+1. When verbose option is present (e.g. -v and --verbose), the verbose is used to define env vars and INI file key
 2. Specific argparse actions:
 
-    # 'count'
-    parser.add_argument('-v', action='count')
-    # env var and INI must be boolean (=1) or int
+    #. 'count'
+        parser.add_argument('-v', action='count')
+        # env var and INI must be boolean (=1) or int
 
-    # 'store_const'
-    # env var must exist
-    # INI must exist
+    #. 'store_const'
+        # env var must exist
+        # INI must exist
 
-    # 'store_true'
-    # env var and INI must exist
+    #. 'store_true'
+        # env var and INI must exist
 
-    # 'store_false'
-    # env var and INI must not exist
+    #. 'store_false'
+        # env var and INI must not exist
 
-    # 'append'
-    # env var and ini ??
+    #. 'append'
+        # env var and ini ??
 
 3. Specific argparse nargs:
 
-    # 'nargs'
-    # INI:
-    [hello]
-    barlist =
-        item1
-        item2
+    #. 'nargs'
+        # INI::
+        
+            [hello]
+            barlist =
+                item1
+                item2
 
-    # env var:
-    KEY=value1:value2:...
+        # env var::
+        
+            KEY=value1:value2:...
 
 
 Implementation
 ==============
 
-1. Override argument parser piece of code that reads the value, and add
-    fallbacks to environ and INI files
-2. Create seperate argument parsers for each input method, parse args in all
-    of them and combine results.
-3. Use custom impl. for env vars and INI files. Use set_defaults to stop arg. parser from
-    complaining for missing arguments
+1. Override argument parser piece of code that reads the value, and add fallbacks to environ and INI files
+2. Create seperate argument parsers for each input method, parse args in all of them and combine results.
+3. Use custom impl. for env vars and INI files. Use set_defaults to stop arg. parser from complaining for missing arguments
