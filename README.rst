@@ -10,7 +10,7 @@ Full-blown configuration. Configure your application, in order of precedence, fr
 * global configuration file
 
 Use a single API similar to the one of `argparse` instead of a couple of
-different ones that have nothing in common (`argparse`, `configparser`, `os`).
+different ones that have nothing in common (``argparse``, ``configparser``, ``os``).
 Returns a dictionary object containing the full configuration.
 
 
