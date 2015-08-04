@@ -64,6 +64,7 @@ Material
 * https://pypi.python.org/pypi/configparser/3.5.0b2
 * http://pythonhosted.org/configglue/
 * http://stackoverflow.com/questions/335695/lists-in-configparser
+* http://stackoverflow.com/questions/6133517/parse-config-file-environment-and-command-line-arguments-to-get-a-single-coll
 
 
 Map arugment parser to INI and env vars
