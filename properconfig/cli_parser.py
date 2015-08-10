@@ -9,40 +9,52 @@ import os
 import sys
 from argparse import ArgumentParser, _get_action_name, _, ArgumentError, \
     SUPPRESS
-from ConfigParser import ConfigParser
+from ConfigParser import ConfigParser as FileConfigParser, DEFAULTSECT, Error as ConfigParserError
+from collections import namedtuple
 
+ParseAttempt = namedtuple("ParseAttempt", ["success", "value", "option_name"])
+failed_attempt = ParseAttempt(success=False,
+                              value=None,
+                              option_name=None)
+
+def _pick_action_option(action):
+    for string in action.option_strings:
+        if "--" in string:
+            return string
+    return action.option_strings[0]
 
 class ConfigParser(ArgumentParser):
     """Parses arguments from environment variables and files as well as from
     the command line.
     """
 
-    def __init__(self, environ_prefix, *args, **kwargs):
+    def __init__(self, environ_prefix=None, fp=None, *args, **kwargs):
         super(ConfigParser, self).__init__(*args, **kwargs)
         self.environ_parser = EnvironParser(prefix=environ_prefix)
         self.from_env = True
         self.from_file = True
-        self.file_parser = FileParser()
+        self.file_parser = FileParser(fp)
 
     def parse_from_other_sources(self, action):
-        parsed, value, option_string = self.environ_parser.parse(action)
-        if parsed:
-            return parsed, value, option_string
-        parsed, value, option_string = self.file_parser.parse(action)
-        if parsed:
-            return parsed, value, option_string
+        parsed = self.environ_parser.parse(action)
+        if parsed.success:
+            return parsed
+        parsed = self.file_parser.parse(action)
+        if parsed.success:
+            return parsed
+        return failed_attempt
 
     def parse_from_env(self, action):
         if self.from_env:
             return self.environ_parser.parse(action)
-        return False, None, None
+        return failed_attempt
 
     def parse_from_file(self, action):
         if self.from_file:
-            parsed, value, option_string = self.environ_parser.parse(action)
-            if parsed:
-                return parsed, value, option_string
-            return False, None, None
+            parsed = self.environ_parser.parse(action)
+            if parsed.success:
+                return parsed
+            return failed_attempt
 
 
     def error(self, message):
@@ -233,9 +245,9 @@ class ConfigParser(ArgumentParser):
 
             # consume any Positionals preceding the next option
             next_option_string_index = min([
-                index
-                for index in option_string_indices
-                if index >= start_index])
+                                               index
+                                               for index in option_string_indices
+                                               if index >= start_index])
             if start_index != next_option_string_index:
                 positionals_end_index = consume_positionals(start_index)
 
@@ -272,10 +284,9 @@ class ConfigParser(ArgumentParser):
         for action in self._actions:
             if action not in seen_actions:
                 # read from other sources
-                parsed, values, option_string = \
-                    self.parse_from_other_sources(action)
-                if parsed:
-                    take_action(action, values, option_string)
+                parsed = self.parse_from_other_sources(action)
+                if parsed.success:
+                    take_action(action, parsed.value, parsed.option_name)
                 elif action.required:
                     name = _get_action_name(action)
                     self.error(_('argument %s is required') % name)
@@ -287,7 +298,7 @@ class ConfigParser(ArgumentParser):
                     if (action.default is not None and
                             isinstance(action.default, basestring) and
                             hasattr(namespace, action.dest) and
-                            action.default is getattr(namespace, action.dest)):
+                                action.default is getattr(namespace, action.dest)):
                         setattr(namespace, action.dest,
                                 self._get_value(action, action.default))
 
@@ -317,32 +328,53 @@ class EnvironParser(object):
         self.prefix = prefix
 
     def parse(self, action):
-        variable = action.option_strings[0]
-        try:
-            return os.environ["{0}_{1}".format(self.prefix, variable)]
-        except KeyError:
-            raise VariableNotFound(variable)
+        for string in action.option_strings:
+            variable = string.replace('-', '').upper()
+            try:
+                return ParseAttempt(
+                    success=True,
+                    value=[os.environ["{0}_{1}".format(self.prefix, variable)]],
+                    option_name=string)
+            except KeyError:
+                pass
+        return failed_attempt
 
 
 class FileParser(object):
     """Parse values from a file."""
-    def __init__(self, fp):
-        pass
-        # read fp, etc.
+    def __init__(self, fp, filename=None):
+        self.filename = filename
+        config = self.config = FileConfigParser()
+        config.readfp(fp)
 
     @classmethod
     def from_filename(cls, filename):
         with open(filename) as f:
-            return FileParser(f)
+            return FileParser(f, filename)
 
     def parse(self, action):
-        raise NotImplementedError
+        for string in action.option_strings:
+            option = string.replace('-', '')
+            try:
+                value = self.config.get(DEFAULTSECT, option)
+                return ParseAttempt(success=True,
+                                    value=[value],
+                                    option_name=string)
+            except ConfigParserError:
+                pass
+        return failed_attempt
 
-parser = ConfigParser(description="test")
-parser.add_argument('----lolz', '--verbose', '-v', '-a', '--wtf', '---lol', type=int, required=True, default=2)
+
+
 
 if __name__ == "__main__":
-    in_args = "----lolz 2".split()
+    with open("config.conf") as f:
+        parser = ConfigParser(environ_prefix="LOL",
+                              fp=f,
+                              description="test")
+    parser.add_argument('-v', '--verbose', type=int, required=True, default=2)
+
+    in_args = "".split()
 
     args = parser.parse_known_args(in_args)
     print args
