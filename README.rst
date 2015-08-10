@@ -26,9 +26,10 @@ Usage
         global_conf=True, # looks up ??/.myapprc
         local_conf=True # looks up ~/.myapprc
     )
-    parser.enable_environ(prefix="MYAPP_")
-    parser.enable_global_conf()
-    parser.enable_local_conf()
+    parser \
+        .enable_environ(prefix="MYAPP_")
+        .enable_global_conf()
+        .enable_local_conf()
 
     parser.add_argument("-v", "--verbose", type=bool)
     # looks up the following:
@@ -109,5 +110,7 @@ Implementation
 ==============
 
 1. Override argument parser piece of code that reads the value, and add fallbacks to environ and INI files
+    Flow:
+    Try to read value from cli->env->files, then fallback to required checks and setting of defaults
 2. Create seperate argument parsers for each input method, parse args in all of them and combine results.
 3. Use custom impl. for env vars and INI files. Use set_defaults to stop arg. parser from complaining for missing arguments
