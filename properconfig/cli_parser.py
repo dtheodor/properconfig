@@ -9,7 +9,8 @@ import os
 import sys
 from argparse import ArgumentParser, _get_action_name, _, ArgumentError, \
     SUPPRESS
-from ConfigParser import ConfigParser as FileConfigParser, DEFAULTSECT, Error as ConfigParserError
+from ConfigParser import ConfigParser as FileConfigParser, DEFAULTSECT, \
+    Error as ConfigParserError
 from collections import namedtuple
 
 ParseAttempt = namedtuple("ParseAttempt", ["success", "value", "option_name"])
@@ -36,6 +37,9 @@ class ConfigParser(ArgumentParser):
         self.file_parser = FileParser(fp)
 
     def parse_from_other_sources(self, action):
+        """Try to read the action's value from all non-CLI configuration
+        sources.
+        """
         parsed = self.environ_parser.parse(action)
         if parsed.success:
             return parsed
@@ -320,20 +324,23 @@ class ConfigParser(ArgumentParser):
         # return the updated namespace and the extra arguments
         return namespace, extras
 
-class VariableNotFound(Exception): pass
 
 class EnvironParser(object):
     """Parse values from environment variables."""
     def __init__(self, prefix):
         self.prefix = prefix
 
+    def cli_option_to_env_var(self, option):
+        variable = option.lstrip("-").replace('-', '_').upper()
+        return "{0}_{1}".format(self.prefix, variable)
+
     def parse(self, action):
         for string in action.option_strings:
-            variable = string.replace('-', '').upper()
+            variable = self.cli_option_to_env_var(string)
             try:
                 return ParseAttempt(
                     success=True,
-                    value=[os.environ["{0}_{1}".format(self.prefix, variable)]],
+                    value=[os.environ[variable]],
                     option_name=string)
             except KeyError:
                 pass
@@ -341,7 +348,10 @@ class EnvironParser(object):
 
 
 class FileParser(object):
-    """Parse values from a file."""
+    """Parses values from an .ini file.
+
+    Uses the ConfigParser module.
+    """
     def __init__(self, fp, filename=None):
         self.filename = filename
         config = self.config = FileConfigParser()
@@ -352,9 +362,12 @@ class FileParser(object):
         with open(filename) as f:
             return FileParser(f, filename)
 
+    def cli_option_to_file_option(self, option):
+        return option.lstrip("-")
+
     def parse(self, action):
         for string in action.option_strings:
-            option = string.replace('-', '')
+            option = self.cli_option_to_file_option(option)
             try:
                 value = self.config.get(DEFAULTSECT, option)
                 return ParseAttempt(success=True,
