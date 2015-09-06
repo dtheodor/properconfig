@@ -5,18 +5,13 @@ created: 2015-Aug-03
 
 
 """
-import os
 import sys
 from argparse import ArgumentParser, _get_action_name, _, ArgumentError, \
     SUPPRESS
-from ConfigParser import ConfigParser as FileConfigParser, DEFAULTSECT, \
-    Error as ConfigParserError
-from collections import namedtuple
 
-ParseAttempt = namedtuple("ParseAttempt", ["success", "value", "option_name"])
-failed_attempt = ParseAttempt(success=False,
-                              value=None,
-                              option_name=None)
+from properconfig import failed_attempt
+from properconfig.environ_parser import EnvironParser
+from properconfig.file_parser import FileParser, get_local_filename
 
 def _pick_action_option(action):
     for string in action.option_strings:
@@ -29,23 +24,84 @@ class ConfigParser(ArgumentParser):
     the command line.
     """
 
-    def __init__(self, environ_prefix=None, fp=None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(ConfigParser, self).__init__(*args, **kwargs)
-        self.environ_parser = EnvironParser(prefix=environ_prefix)
-        self.from_env = True
-        self.from_file = True
-        self.file_parser = FileParser(fp)
 
-    def parse_from_other_sources(self, action):
+        self._env = False
+        self._cli_file = False
+        self._local_file = False
+        self._global_file = False
+
+        self.option_sources = {}
+
+    def enable_cli_conf_file(self):
+        self._add_conf_file_option()
+        self._cli_file = True
+        self._cli_file_parser = None
+        return self
+
+    def enable_environ(self, prefix=None):
+        self.environ_parser = EnvironParser(prefix=prefix)
+        self._env = True
+        return self
+
+    def enable_local_conf_file(self, fp=None, filename=None):
+        if fp:
+            self.local_file_parser = FileParser(fp, filename)
+        else:
+            if filename is None:
+                # get local directory
+                filename = get_local_filename(self.prog)
+            self.local_file_parser = FileParser.from_filename(filename)
+        self._local_file = True
+        return self
+
+    def enable_global_conf_file(self):
+        self.global_file_parser = FileParser.from_filename(self.prog)
+        self._global_file = True
+        return self
+
+    def _add_conf_file_option(self):
+        """Add the '--configuration-file' option."""
+        default_prefix = '-' if '-' in self.prefix_chars else self.prefix_chars[0]
+        self.add_argument(
+            default_prefix+'conf', default_prefix*2+'config-file',
+            metavar="FILE",
+            help=_('Specify a configuration file from which to read options.'))
+
+    def get_cli_file_parser(self, filename):
+        if getattr(self, "_cli_file_parser", None) is None:
+            self._cli_file_parser = FileParser.from_filename(filename)
+        return self._cli_file_parser
+
+    def validate(self):
+        """Read and validate configuration."""
+        raise NotImplementedError
+
+    def parse_from_other_sources(self, action, namespace):
         """Try to read the action's value from all non-CLI configuration
         sources.
         """
-        parsed = self.environ_parser.parse(action)
-        if parsed.success:
-            return parsed
-        parsed = self.file_parser.parse(action)
-        if parsed.success:
-            return parsed
+        # 1. configuration file passed to command line or environment variable
+        if self._cli_file and namespace.config_file is not None:
+            file_parser = self.get_cli_file_parser(namespace.config_file)
+            result = file_parser.parse(action)
+            if result.success:
+                return result
+        # 2. environment
+        if self._env:
+            result = self.environ_parser.parse(action)
+            if result.success:
+                return result
+        # 3. local configuration file
+        if self._local_file:
+            result = self.local_file_parser.parse(action)
+            if result.success:
+                return result
+        # 4. global configuration file
+        if self._global_file:
+            pass
+            # TODO
         return failed_attempt
 
     def parse_from_env(self, action):
@@ -54,6 +110,7 @@ class ConfigParser(ArgumentParser):
         return failed_attempt
 
     def parse_from_file(self, action):
+        # TODO: use for CLI-passed file, local file, and global file
         if self.from_file:
             parsed = self.environ_parser.parse(action)
             if parsed.success:
@@ -212,6 +269,8 @@ class ConfigParser(ArgumentParser):
             assert action_tuples
             for action, args, option_string in action_tuples:
                 take_action(action, args, option_string)
+                self.option_sources[action.dest] = \
+                    "CLI option: '{}'".format(option_string)
             return stop
 
         # the list of Positionals left to be parsed; this is modified
@@ -288,9 +347,10 @@ class ConfigParser(ArgumentParser):
         for action in self._actions:
             if action not in seen_actions:
                 # read from other sources
-                parsed = self.parse_from_other_sources(action)
+                parsed = self.parse_from_other_sources(action, namespace)
                 if parsed.success:
                     take_action(action, parsed.value, parsed.option_name)
+                    self.option_sources[action.dest] = parsed.source
                 elif action.required:
                     name = _get_action_name(action)
                     self.error(_('argument %s is required') % name)
@@ -305,6 +365,7 @@ class ConfigParser(ArgumentParser):
                                 action.default is getattr(namespace, action.dest)):
                         setattr(namespace, action.dest,
                                 self._get_value(action, action.default))
+                        self.option_sources[action.dest] = "Default value"
 
         # make sure all required groups had one option present
         for group in self._mutually_exclusive_groups:
@@ -325,69 +386,20 @@ class ConfigParser(ArgumentParser):
         return namespace, extras
 
 
-class EnvironParser(object):
-    """Parse values from environment variables."""
-    def __init__(self, prefix):
-        self.prefix = prefix
-
-    def cli_option_to_env_var(self, option):
-        variable = option.lstrip("-").replace('-', '_').upper()
-        return "{0}_{1}".format(self.prefix, variable)
-
-    def parse(self, action):
-        for string in action.option_strings:
-            variable = self.cli_option_to_env_var(string)
-            try:
-                return ParseAttempt(
-                    success=True,
-                    value=[os.environ[variable]],
-                    option_name=string)
-            except KeyError:
-                pass
-        return failed_attempt
-
-
-class FileParser(object):
-    """Parses values from an .ini file.
-
-    Uses the ConfigParser module.
-    """
-    def __init__(self, fp, filename=None):
-        self.filename = filename
-        config = self.config = FileConfigParser()
-        config.readfp(fp)
-
-    @classmethod
-    def from_filename(cls, filename):
-        with open(filename) as f:
-            return FileParser(f, filename)
-
-    def cli_option_to_file_option(self, option):
-        return option.lstrip("-")
-
-    def parse(self, action):
-        for string in action.option_strings:
-            option = self.cli_option_to_file_option(option)
-            try:
-                value = self.config.get(DEFAULTSECT, option)
-                return ParseAttempt(success=True,
-                                    value=[value],
-                                    option_name=string)
-            except ConfigParserError:
-                pass
-        return failed_attempt
 
 
 
 
 if __name__ == "__main__":
     with open("config.conf") as f:
-        parser = ConfigParser(environ_prefix="LOL",
-                              fp=f,
-                              description="test")
+        parser = ConfigParser(description="test")\
+            .enable_environ(prefix="LOL")\
+            .enable_cli_conf_file()\
+            .enable_local_conf_file(fp=f)
     parser.add_argument('-v', '--verbose', type=int, required=True, default=2)
 
-    in_args = "".split()
+    in_args = "-conf other_config.conf".split()
 
     args = parser.parse_known_args(in_args)
+    print parser.option_sources
     print args

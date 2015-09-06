@@ -68,7 +68,7 @@ Material
 * http://stackoverflow.com/questions/6133517/parse-config-file-environment-and-command-line-arguments-to-get-a-single-coll
 
 
-Map arugment parser to INI and env vars
+Map argument parser to INI and env vars
 =======================================
 
 1. When verbose option is present (e.g. -v and --verbose), the verbose is used to define env vars and INI file key
