@@ -4,7 +4,7 @@ Created by @dtheodor at 2015-09-06
 """
 import os
 
-from . import ParseAttempt, failed_attempt
+from .common import ParseAttempt, failed_attempt
 
 class EnvironParser(object):
     """Parse values from environment variables."""

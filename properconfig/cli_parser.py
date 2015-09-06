@@ -9,9 +9,9 @@ import sys
 from argparse import ArgumentParser, _get_action_name, _, ArgumentError, \
     SUPPRESS
 
-from properconfig import failed_attempt
-from properconfig.environ_parser import EnvironParser
-from properconfig.file_parser import FileParser, get_local_filename
+from .common import failed_attempt
+from .environ_parser import EnvironParser
+from .file_parser import FileParser, get_local_filename
 
 def _pick_action_option(action):
     for string in action.option_strings:
@@ -384,22 +384,3 @@ class ConfigParser(ArgumentParser):
 
         # return the updated namespace and the extra arguments
         return namespace, extras
-
-
-
-
-
-
-if __name__ == "__main__":
-    with open("config.conf") as f:
-        parser = ConfigParser(description="test")\
-            .enable_environ(prefix="LOL")\
-            .enable_cli_conf_file()\
-            .enable_local_conf_file(fp=f)
-    parser.add_argument('-v', '--verbose', type=int, required=True, default=2)
-
-    in_args = "-conf other_config.conf".split()
-
-    args = parser.parse_known_args(in_args)
-    print parser.option_sources
-    print args

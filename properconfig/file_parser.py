@@ -6,10 +6,12 @@ import os
 from ConfigParser import ConfigParser, DEFAULTSECT, \
     Error as ConfigParserError
 
-from . import ParseAttempt, failed_attempt
+from .common import ParseAttempt, failed_attempt
+
 
 def get_local_filename(prog):
     return os.path.join(os.path.expanduser("~"), prog)
+
 
 class FileParser(object):
     """Parses values from an .ini file.
@@ -20,7 +22,7 @@ class FileParser(object):
         if filename is None:
             try:
                 filename = fp.name
-            except:
+            except AttributeError:
                 filename = "<Unknown filename>"
         self.filename = filename
         config = self.config = ConfigParser()
@@ -31,7 +33,8 @@ class FileParser(object):
         with open(filename) as f:
             return FileParser(f, filename)
 
-    def cli_option_to_file_option(self, option):
+    @staticmethod
+    def cli_option_to_file_option(option):
         """Turns '--my-cli-option' into 'my-cli-option'."""
         return option.lstrip("-")
 
