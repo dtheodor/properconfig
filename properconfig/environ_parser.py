@@ -3,7 +3,7 @@
 Created by @dtheodor at 2015-09-06
 """
 import os
-
+from argparse import _CountAction, _StoreConstAction
 from .common import ParseAttempt, failed_attempt, sources, SourceInfo
 
 
@@ -27,13 +27,30 @@ class EnvironParser(object):
         return "{0}_{1}".format(self.prefix, variable)
 
     def parse(self, action):
+
         for string in action.option_strings:
             variable = self.cli_option_to_env_var(string)
             try:
+                count = 1
+                if isinstance(action, _StoreConstAction):
+                    value = variable in os.environ
+                    if value is False:
+                        continue
+                else:
+                    value = os.environ[variable]
+                    if isinstance(action, _CountAction):
+                        try:
+                            count = int(value)
+                        except ValueError:
+                            raise ValueError(
+                                "Cannot parse environment variable '{}' "
+                                "with value '{}' into an integer."
+                                .format(variable, value))
                 return ParseAttempt(
                     success=True,
-                    value=[os.environ[variable]],
+                    value=[value],
                     option_name=string,
+                    count=count,
                     source=EnvSource(variable=variable))
             except KeyError:
                 pass

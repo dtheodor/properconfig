@@ -372,7 +372,8 @@ class ConfigParser(ArgumentParser):
                 # read from other sources
                 parsed = self.parse_from_other_sources(action, namespace)
                 if parsed.success:
-                    take_action(action, parsed.value, parsed.option_name)
+                    for n in xrange(parsed.count):
+                        take_action(action, parsed.value, parsed.option_name)
                     self.option_sources[action.dest] = parsed.source
                 elif action.required:
                 # -- properconfig mod end --

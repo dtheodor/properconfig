@@ -3,6 +3,7 @@
 Created by @dtheodor at 2015-09-06
 """
 import os
+from argparse import _CountAction, _StoreConstAction
 from ConfigParser import ConfigParser, DEFAULTSECT, \
     Error as ConfigParserError
 
@@ -50,11 +51,21 @@ class FileParser(object):
         for string in action.option_strings:
             option = self.cli_option_to_file_option(string)
             try:
+                count = 1
                 # TODO: change DEFAULTSECT to program name
-                value = self.config.get(DEFAULTSECT, option)
+                if isinstance(action, _StoreConstAction):
+                    value = self.config.has_option(DEFAULTSECT, option)
+                    if value is False:
+                        continue
+                elif isinstance(action, _CountAction):
+                    count = self.config.getint(DEFAULTSECT, option)
+                    value = count
+                else:
+                    value = self.config.get(DEFAULTSECT, option)
                 return ParseAttempt(
                     success=True,
                     value=[value],
+                    count=count,
                     option_name=string,
                     source=FileSource(filename=self.filename,
                                       option=option))

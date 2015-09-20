@@ -9,7 +9,12 @@ if __name__ == "__main__":
             .enable_environ(prefix="LOL")\
             .enable_cli_conf_file()\
             .enable_local_conf_file(fp=f)
-    parser.add_argument('-v', '--verbose', type=int, required=True, default=2)
+    parser.add_argument('-v', '--verbose',
+                        action="count",
+                        required=True,
+                        #type=int,
+                        #default=2
+                        )
 
     in_args = "-conf other_config.conf".split()
 
