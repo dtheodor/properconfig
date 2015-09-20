@@ -269,8 +269,10 @@ class ConfigParser(ArgumentParser):
             assert action_tuples
             for action, args, option_string in action_tuples:
                 take_action(action, args, option_string)
+                # properconfig mod start
                 self.option_sources[action.dest] = \
                     "CLI option: '{}'".format(option_string)
+                # properconfig mod end
             return stop
 
         # the list of Positionals left to be parsed; this is modified
@@ -308,9 +310,9 @@ class ConfigParser(ArgumentParser):
 
             # consume any Positionals preceding the next option
             next_option_string_index = min([
-                                               index
-                                               for index in option_string_indices
-                                               if index >= start_index])
+                index
+                for index in option_string_indices
+                if index >= start_index])
             if start_index != next_option_string_index:
                 positionals_end_index = consume_positionals(start_index)
 
@@ -346,12 +348,14 @@ class ConfigParser(ArgumentParser):
         # make sure all required actions were present, and convert defaults.
         for action in self._actions:
             if action not in seen_actions:
+                # properconfig mod start
                 # read from other sources
                 parsed = self.parse_from_other_sources(action, namespace)
                 if parsed.success:
                     take_action(action, parsed.value, parsed.option_name)
                     self.option_sources[action.dest] = parsed.source
                 elif action.required:
+                # properconfig mod end
                     name = _get_action_name(action)
                     self.error(_('argument %s is required') % name)
                 else:
@@ -362,10 +366,12 @@ class ConfigParser(ArgumentParser):
                     if (action.default is not None and
                             isinstance(action.default, basestring) and
                             hasattr(namespace, action.dest) and
-                                action.default is getattr(namespace, action.dest)):
+                            action.default is getattr(namespace, action.dest)):
                         setattr(namespace, action.dest,
                                 self._get_value(action, action.default))
+                        # properconfig mod start
                         self.option_sources[action.dest] = "Default value"
+                        # properconfig mod end
 
         # make sure all required groups had one option present
         for group in self._mutually_exclusive_groups:
