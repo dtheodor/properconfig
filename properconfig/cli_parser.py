@@ -132,6 +132,13 @@ class ConfigParser(ArgumentParser):
         return super(ConfigParser, self)._get_value(action, arg_string)
 
     def _parse_known_args(self, arg_strings, namespace):
+        # properconfig mod start
+        # this (huge) method has been modified in a couple of places to allow
+        # for parsing required options from other sources. it was impossible
+        # to implement this more cleanly without significantly more effort. the
+        # modifications have been marked with 'properconfig mod start' and
+        # 'properconfig mod end' comments
+        # properconfig mod end
         # replace arg strings that are file references
         if self.fromfile_prefix_chars is not None:
             arg_strings = self._read_args_from_files(arg_strings)
