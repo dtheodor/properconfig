@@ -29,6 +29,7 @@ class ConfigParser(ArgumentParser):
 
         self._env = False
         self._cli_file = False
+        self._cli_file_parser = None
         self._local_file = False
         self._global_file = False
 
@@ -37,7 +38,7 @@ class ConfigParser(ArgumentParser):
     def enable_cli_conf_file(self):
         self._add_conf_file_option()
         self._cli_file = True
-        self._cli_file_parser = None
+
         return self
 
     def enable_environ(self, prefix=None):
@@ -70,7 +71,7 @@ class ConfigParser(ArgumentParser):
             help=_('Specify a configuration file from which to read options.'))
 
     def get_cli_file_parser(self, filename):
-        if getattr(self, "_cli_file_parser", None) is None:
+        if self._cli_file_parser is None:
             self._cli_file_parser = FileParser.from_filename(filename)
         return self._cli_file_parser
 
@@ -132,13 +133,13 @@ class ConfigParser(ArgumentParser):
         return super(ConfigParser, self)._get_value(action, arg_string)
 
     def _parse_known_args(self, arg_strings, namespace):
-        # properconfig mod start
+        # -- properconfig mod start --
         # this (huge) method has been modified in a couple of places to allow
         # for parsing required options from other sources. it was impossible
         # to implement this more cleanly without significantly more effort. the
         # modifications have been marked with 'properconfig mod start' and
         # 'properconfig mod end' comments
-        # properconfig mod end
+        # -- properconfig mod end --
         # replace arg strings that are file references
         if self.fromfile_prefix_chars is not None:
             arg_strings = self._read_args_from_files(arg_strings)
@@ -276,10 +277,10 @@ class ConfigParser(ArgumentParser):
             assert action_tuples
             for action, args, option_string in action_tuples:
                 take_action(action, args, option_string)
-                # properconfig mod start
+                # -- properconfig mod start --
                 self.option_sources[action.dest] = \
                     "CLI option: '{}'".format(option_string)
-                # properconfig mod end
+                # -- properconfig mod end --
             return stop
 
         # the list of Positionals left to be parsed; this is modified
@@ -355,14 +356,14 @@ class ConfigParser(ArgumentParser):
         # make sure all required actions were present, and convert defaults.
         for action in self._actions:
             if action not in seen_actions:
-                # properconfig mod start
+                # -- properconfig mod start --
                 # read from other sources
                 parsed = self.parse_from_other_sources(action, namespace)
                 if parsed.success:
                     take_action(action, parsed.value, parsed.option_name)
                     self.option_sources[action.dest] = parsed.source
                 elif action.required:
-                # properconfig mod end
+                # -- properconfig mod end --
                     name = _get_action_name(action)
                     self.error(_('argument %s is required') % name)
                 else:
@@ -376,9 +377,9 @@ class ConfigParser(ArgumentParser):
                             action.default is getattr(namespace, action.dest)):
                         setattr(namespace, action.dest,
                                 self._get_value(action, action.default))
-                        # properconfig mod start
+                        # -- properconfig mod start --
                         self.option_sources[action.dest] = "Default value"
-                        # properconfig mod end
+                        # -- properconfig mod end --
 
         # make sure all required groups had one option present
         for group in self._mutually_exclusive_groups:
