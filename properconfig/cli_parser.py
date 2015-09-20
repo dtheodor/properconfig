@@ -9,15 +9,30 @@ import sys
 from argparse import ArgumentParser, _get_action_name, _, ArgumentError, \
     SUPPRESS
 
-from .common import failed_attempt
+from .common import failed_attempt, sources, SourceInfo
 from .environ_parser import EnvironParser
 from .file_parser import FileParser, get_local_filename
+
 
 def _pick_action_option(action):
     for string in action.option_strings:
         if "--" in string:
             return string
     return action.option_strings[0]
+
+
+class CliSource(SourceInfo):
+    source = sources.CLI
+    __slots__ = ("option",)
+
+    def __init__(self, option):
+        self.option = option
+
+
+class DefaultSource(SourceInfo):
+    source = sources.DEFAULT
+    __slots__ = ()
+
 
 class ConfigParser(ArgumentParser):
     """Parses arguments from environment variables and files as well as from
@@ -32,13 +47,11 @@ class ConfigParser(ArgumentParser):
         self._cli_file_parser = None
         self._local_file = False
         self._global_file = False
-
         self.option_sources = {}
 
     def enable_cli_conf_file(self):
         self._add_conf_file_option()
         self._cli_file = True
-
         return self
 
     def enable_environ(self, prefix=None):
@@ -117,7 +130,6 @@ class ConfigParser(ArgumentParser):
             if parsed.success:
                 return parsed
             return failed_attempt
-
 
     def error(self, message):
         print message
@@ -278,8 +290,8 @@ class ConfigParser(ArgumentParser):
             for action, args, option_string in action_tuples:
                 take_action(action, args, option_string)
                 # -- properconfig mod start --
-                self.option_sources[action.dest] = \
-                    "CLI option: '{}'".format(option_string)
+                self.option_sources[action.dest] = CliSource(
+                    option=option_string)
                 # -- properconfig mod end --
             return stop
 
@@ -378,7 +390,7 @@ class ConfigParser(ArgumentParser):
                         setattr(namespace, action.dest,
                                 self._get_value(action, action.default))
                         # -- properconfig mod start --
-                        self.option_sources[action.dest] = "Default value"
+                        self.option_sources[action.dest] = DefaultSource()
                         # -- properconfig mod end --
 
         # make sure all required groups had one option present

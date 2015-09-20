@@ -4,7 +4,16 @@ Created by @dtheodor at 2015-09-06
 """
 import os
 
-from .common import ParseAttempt, failed_attempt
+from .common import ParseAttempt, failed_attempt, sources, SourceInfo
+
+
+class EnvSource(SourceInfo):
+    source = sources.ENV
+    __slots__ = ("variable",)
+
+    def __init__(self, variable):
+        self.variable = variable
+
 
 class EnvironParser(object):
     """Parse values from environment variables."""
@@ -25,7 +34,7 @@ class EnvironParser(object):
                     success=True,
                     value=[os.environ[variable]],
                     option_name=string,
-                    source="Environment Variable: '{}'".format(variable))
+                    source=EnvSource(variable=variable))
             except KeyError:
                 pass
         return failed_attempt

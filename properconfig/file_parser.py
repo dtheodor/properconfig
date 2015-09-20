@@ -6,11 +6,19 @@ import os
 from ConfigParser import ConfigParser, DEFAULTSECT, \
     Error as ConfigParserError
 
-from .common import ParseAttempt, failed_attempt
+from .common import ParseAttempt, failed_attempt, sources, SourceInfo
 
 
 def get_local_filename(prog):
     return os.path.join(os.path.expanduser("~"), prog)
+
+class FileSource(SourceInfo):
+    source = sources.FILE
+    __slots__ = ("filename", "option")
+
+    def __init__(self, filename, option):
+        self.filename = filename
+        self.option = option
 
 
 class FileParser(object):
@@ -48,8 +56,8 @@ class FileParser(object):
                     success=True,
                     value=[value],
                     option_name=string,
-                    source="Filename: '{}', Option: '{}'".format(
-                        self.filename or '<Unknown filename>', option))
+                    source=FileSource(filename=self.filename,
+                                      option=option))
             except ConfigParserError:
                 pass
         return failed_attempt
