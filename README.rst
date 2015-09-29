@@ -126,8 +126,7 @@ Append and nargs
         KEY=value1:value2:...
 
 
-* if we have both append and nargs, INI files and env vars do not change.
-  ``cmd --option 1 2 3 --option 4 5`` can be
+* if we have both append and nargs, INI files and env vars do not change. ``cmd --option 1 2 3 --option 4 5`` can be
 
         # INI::
 
@@ -144,8 +143,8 @@ Append and nargs
             KEY=1:2:3:4:5
 
 
-* since the above is ambiguous, support for both append and nargs is not
-  available for INI and env vars
+* since the above is ambiguous, support for both append and nargs is not available for INI and env vars
+
 
 Implementation
 ==============
