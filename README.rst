@@ -105,6 +105,45 @@ Map argument parser to INI and env vars
         
             KEY=value1:value2:...
 
+Append and nargs
+^^^^^^^^^^^^^^^^
+
+* append is `cmd --option 1 --option 2`
+* nargs is `cmd --option 1 2`
+* both produce `option = [1,2]`
+* they can be combined `cmd --option 1 2 3 --option 3 4` to give `option = [[1,2,3], [3,4]]`
+* for conf files and env variables, all are implemented using
+
+        # INI::
+
+            [hello]
+            barlist =
+                item1
+                item2
+
+        # env var::
+
+            KEY=value1:value2:...
+
+* if we have both append and nargs, INI files and env vars do not change.
+    `cmd --option 1 2 3 --option 4 5` can be
+
+        # INI::
+
+            [hello]
+            option =
+                1
+                2
+                3
+                4
+                5
+
+        # env var::
+
+            KEY=1:2:3:4:5
+
+* since the above is ambiguous, support for both append and nargs is not
+available for INI and env vars
 
 Implementation
 ==============
@@ -114,3 +153,11 @@ Implementation
     Try to read value from cli->env->files, then fallback to required checks and setting of defaults
 2. Create seperate argument parsers for each input method, parse args in all of them and combine results.
 3. Use custom impl. for env vars and INI files. Use set_defaults to stop arg. parser from complaining for missing arguments
+
+
+TODO
+====
+
+1. append action
+2. nargs
+3. subparsers
