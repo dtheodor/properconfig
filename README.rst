@@ -9,7 +9,7 @@ Full-blown configuration. Configure your application, in order of precedence, fr
 * local configuration file
 * global configuration file
 
-Use a single API similar to the one of `argparse` instead of a couple of
+Use a single API similar to the one of ``argparse` instead of a couple of
 different ones that have nothing in common (``argparse``, ``configparser``, ``os``).
 Returns a dictionary object containing the full configuration.
 
@@ -108,26 +108,26 @@ Map argument parser to INI and env vars
 Append and nargs
 ^^^^^^^^^^^^^^^^
 
-* append is `cmd --option 1 --option 2`
-* nargs is `cmd --option 1 2`
-* both produce `option = [1,2]`
-* they can be combined `cmd --option 1 2 3 --option 3 4` to give `option = [[1,2,3], [3,4]]`
+* append is ``cmd --option 1 --option 2``
+* nargs is ``cmd --option 1 2``
+* both produce ``option = [1,2]``
+* they can be combined ``cmd --option 1 2 3 --option 3 4`` to give ``option = [[1,2,3], [3,4]]``
 * for conf files and env variables, all are implemented using
 
-        # INI::
+    # INI::
 
-            [hello]
-            barlist =
-                item1
-                item2
+        [hello]
+        barlist =
+            item1
+            item2
 
-        # env var::
+    # env var::
 
-            KEY=value1:value2:...
+        KEY=value1:value2:...
 
 
 * if we have both append and nargs, INI files and env vars do not change.
-    `cmd --option 1 2 3 --option 4 5` can be
+  ``cmd --option 1 2 3 --option 4 5`` can be
 
         # INI::
 
@@ -145,7 +145,7 @@ Append and nargs
 
 
 * since the above is ambiguous, support for both append and nargs is not
-available for INI and env vars
+  available for INI and env vars
 
 Implementation
 ==============
